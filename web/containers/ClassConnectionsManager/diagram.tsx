@@ -73,13 +73,15 @@ const Connector: React.FC<IConnectorProps> = ({
 
             addMessageListener(Messages.RETURN_INTERFACE_DATA, ({ data }) => {
                 if (data.iface_kind === 'class') {
-                    setConnectors(data.class?.class_connectors || []);
+                    setConnectors(data.class?.['class-connectors'] || []);
                 }
             });
 
+            const class_name_parts = manageDialog.class.split(':'); // possibly with prefix 
+            const class_name = class_name_parts[1] || class_name_parts[0];
             postMessage(Messages.GET_INTERFACE_DATA, {
                 iface_kind: 'class',
-                name: manageDialog.class,
+                class_name
             });
         }
     }, [manageDialog]);
@@ -209,9 +211,12 @@ const ClassConnectionsDiagram: React.FC<IClassConnectionsDiagramProps> = ({
     connection = connection.map(
         (connectionData: IClassConnection): IClassConnection => {
             // Get the class
-            const connClass = classesData[connectionData.class];
+            const class_name_parts = connectionData.class.split(':'); // possibly with prefix
+            const class_name = class_name_parts[1] || class_name_parts[0];
+            const connClass = Object.values(classesData).find(class_data => class_data['class-name'] === class_name);
+
             // Get the connector data
-            const connectorData = connClass['class_connectors'].find(conn => conn.name === connectionData.connector);
+            const connectorData = connClass['class-connectors'].find(conn => conn.name === connectionData.connector);
             // Return updated data
             return {
                 ...connectionData,
