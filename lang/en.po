@@ -979,6 +979,12 @@ msgstr "Language"
 msgid "field-desc-lang"
 msgstr "Programming language"
 
+msgid "field-label-sensitive"
+msgstr "Sensitive"
+
+msgid "field-desc-sensitive"
+msgstr "Is it a sensitive data?"
+
 msgid "field-label-codes"
 msgstr "Mapper codes"
 
@@ -1369,10 +1375,10 @@ msgstr "hash"
 msgid "field-label-list"
 msgstr "list"
 
-msgid "field-label-class_connectors"
+msgid "field-label-class-connectors"
 msgstr "Connectors"
 
-msgid "field-desc-class_connectors"
+msgid "field-desc-class-connectors"
 msgstr "Connectors used for building blocks"
 
 msgid "InputMethod"

@@ -1,8 +1,9 @@
 import * as jsyaml from 'js-yaml';
 import * as shortid from 'shortid';
+import * as flattenDeep from 'lodash/flattenDeep';
 import { qorus_webview } from '../QorusWebview';
 import { default_version, QorusProjectCodeInfo } from '../QorusProjectCodeInfo';
-import { defaultValue } from './config_item_constants';
+import { defaultValue, configItemFields } from './config_item_constants';
 import { hasConfigItems } from '../qorus_utils';
 import { t } from 'ttag';
 import * as msg from '../qorus_message';
@@ -26,6 +27,9 @@ export class InterfaceInfo {
             this.iface_by_id[iface_id]['config-items'] = [];
             this.iface_by_id[iface_id]['orig-config-items'] = [];
         }
+        if (iface_kind === 'workflow' && !this.iface_by_id[iface_id]['config-item-values']) {
+            this.iface_by_id[iface_id]['config-item-values'] = [];
+        }
     }
 
     resetConfigItemsToOrig = iface_id => {
@@ -39,8 +43,8 @@ export class InterfaceInfo {
         this.are_orig_config_items_set = false;
     }
 
-    setOrigConfigItems = iface_id => {
-        if (!this.checkIfaceId(iface_id)) {
+    setOrigConfigItems = (iface_id, report_unknown_iface_id = true) => {
+        if (!this.checkIfaceId(iface_id, report_unknown_iface_id)) {
             return;
         }
 
@@ -49,9 +53,11 @@ export class InterfaceInfo {
         this.are_orig_config_items_set = true;
     }
 
-    private checkIfaceId = (iface_id): boolean => {
+    private checkIfaceId = (iface_id, report_unknown_iface_id = true): boolean => {
         if (!this.iface_by_id[iface_id]) {
-            msg.log(t`UnexpectedIfaceId`);
+            if (report_unknown_iface_id) {
+                msg.log(t`UnexpectedIfaceId`);
+            }
             return false;
         }
         return true;
@@ -75,39 +81,55 @@ export class InterfaceInfo {
     updateConfigItemValue = ({iface_id, iface_kind, name, value, level, parent_class, remove}) => {
         this.initIfaceId(iface_id, iface_kind);
 
-        if (parent_class) {
-            this.addClassConfigItems(iface_id, parent_class);
-        }
+        const parsed_value = jsyaml.safeLoad(value);
 
-        this.iface_by_id[iface_id]['config-items'].forEach(item => {
-            if (item.name !== name || !level) {
+        if (level === 'workflow') {
+            if (iface_kind !== 'workflow') {
+                msg.error(t`WorkflowConfigItemValueForNonWorkflow`);
                 return;
             }
 
-            if (['step', 'job', 'service', 'class'].includes(level)) {
-                level = 'local';
-            }
+            const index = this.iface_by_id[iface_id]['config-item-values']
+                              .findIndex(ci_value => ci_value.name === name);
 
             if (value === null && remove) {
-                delete item[level + '-value'];
-                if (level === 'global') {
-                    item['remove-global-value'] = true;
+                if (index > -1) {
+                    this.iface_by_id[iface_id]['config-item-values'].splice(index, 1);
+                } else {
+                    msg.error(t`WorkflowConfigItemValueNotFound ${name}`);
                 }
-                return;
+            } else {
+                if (index > -1) {
+                    this.iface_by_id[iface_id]['config-item-values'][index].value = parsed_value;
+                } else {
+                    this.iface_by_id[iface_id]['config-item-values'].push({name, value: parsed_value});
+                }
+            }
+        } else {
+            if (parent_class) {
+                this.addClassConfigItems(iface_id, parent_class);
             }
 
-            let val;
-            const non_star_type = (item.type && item.type[0] === '*') ? item.type.substr(1) : item.type;
-            switch (non_star_type) {
-                case 'int': val = parseInt(value); break;
-                case 'float': val = parseFloat(value); break;
-                case 'bool': val = JSON.parse(value); break;
-                default: val = jsyaml.safeLoad(value);
-            }
+            this.iface_by_id[iface_id]['config-items'].forEach(item => {
+                if (item.name !== name || !level) {
+                    return;
+                }
 
-            item[level + '-value'] = val;
-        });
+                if (['step', 'job', 'service', 'class'].includes(level)) {
+                    level = 'local';
+                }
 
+                if (value === null && remove) {
+                    delete item[level + '-value'];
+                    if (level === 'global') {
+                        item['remove-global-value'] = true;
+                    }
+                    return;
+                }
+
+                item[level + '-value'] = parsed_value;
+            });
+        }
         this.getConfigItems({iface_id, iface_kind});
     }
 
@@ -119,8 +141,29 @@ export class InterfaceInfo {
         }
         delete item.can_be_undefined;
 
-        const index = this.iface_by_id[iface_id]['config-items'].findIndex(item2 => item2.name === item.name);
+        if (['list', 'hash'].includes(item.type)) {
+            if (item.default_value) {
+                item.default_value = jsyaml.safeLoad(item.default_value);
+            }
+
+            if (item.allowed_values) {
+                item.allowed_values = item.allowed_values.map(value => jsyaml.safeLoad(value));
+            }
+        }
+
+        const name_to_search = item.orig_name || item.name;
+        const index = this.iface_by_id[iface_id]['config-items']
+                          .findIndex(item2 => item2.name === name_to_search);
         if (index > -1) {
+            if (name_to_search !== item.name) {
+                this.iface_by_id[iface_id]['config-items'][index].name = item.name;
+            }
+
+            const field_names = configItemFields(this).map(field => field.name);
+            field_names.forEach(field_name => {
+                delete this.iface_by_id[iface_id]['config-items'][index][field_name];
+            });
+
             this.iface_by_id[iface_id]['config-items'][index] = {
                 ... this.iface_by_id[iface_id]['config-items'][index],
                 ... item
@@ -160,7 +203,7 @@ export class InterfaceInfo {
         }
 
         const parent_name = raw_item.parent['interface-name'];
-        const parent_data = this.code_info.classYamlData(parent_name);
+        const parent_data = this.code_info.yamlDataByClass(parent_name);
         if (!parent_data) {
             return raw_item;
         }
@@ -178,7 +221,7 @@ export class InterfaceInfo {
     }
 
     private addClassConfigItems = (iface_id, class_name, prefix?) => {
-        const class_yaml_data = this.code_info.classYamlData(class_name);
+        const class_yaml_data = this.code_info.yamlDataByClass(class_name);
         if (!class_yaml_data) {
             return;
         }
@@ -196,11 +239,11 @@ export class InterfaceInfo {
             };
             item.parent_class = class_name;
             if (prefix) {
-                item.prefix = prefix;
+                item.prefix = prefix + (item.prefix || '');
             }
 
             const index = this.iface_by_id[iface_id]['config-items'].findIndex(item2 =>
-                item2.name === raw_item.name && item2.prefix === raw_item.prefix
+                item2.name === raw_item.name && (!item2.prefix || item2.prefix === raw_item.prefix)
             );
 
             if (index > -1) {
@@ -217,11 +260,17 @@ export class InterfaceInfo {
 
     getConfigItem = ({iface_id, name}) => {
         const config_items = iface_id && this.iface_by_id[iface_id] && this.iface_by_id[iface_id]['config-items'];
-        const config_item = config_items ? config_items.find(item => item.name === name) : undefined;
+        const config_item = (config_items || []).find(item => item.name === name);
+
+        let item = { ... config_item };
+        if ((item.type || '')[0] === '*') {
+            item.type = item.type.substr(1);
+            item.can_be_undefined = true;
+        }
 
         const message = {
             action: 'return-config-item',
-            item: config_item
+            item
         };
 
         qorus_webview.postMessage(message);
@@ -269,6 +318,26 @@ export class InterfaceInfo {
         });
     }
 
+    private workflowStepsConfigItems = steps => {
+        let items = [];
+        flattenDeep(steps).forEach(name => {
+            const step_data = this.code_info.yamlDataByName('step', name);
+            const iface_id = this.addIfaceById(step_data, 'step');
+            if (step_data['base-class-name']) {
+                this.addClassConfigItems(iface_id, step_data['base-class-name']);
+            }
+            (step_data.classes || []).forEach(class_data => {
+                class_data.name && this.addClassConfigItems(iface_id, class_data.name, class_data.prefix);
+            });
+            (step_data['config-items'] || []).forEach(item => {
+                if (items.findIndex(item2 => item2.name === item.name) === -1) {
+                    items.push(item);
+                }
+            });
+        });
+        return items;
+    }
+
     getConfigItems = params => {
         const {'base-class-name': base_class_name, classes, requires, iface_id, iface_kind} = params;
         if (!iface_id) {
@@ -277,6 +346,10 @@ export class InterfaceInfo {
         this.initIfaceId(iface_id, iface_kind);
 
         const classes_or_requires = requires ? requires : classes;
+
+        const toYamlIfComplex = (value, type) => ['list', 'hash'].includes(type)
+            ? jsyaml.safeDump(value).replace(/\r?\n$/, '')
+            : value;
 
         this.code_info.waitForPending(['yaml']).then(() => {
             if (base_class_name) {
@@ -293,13 +366,24 @@ export class InterfaceInfo {
                 class_data.name && this.addClassConfigItems(iface_id, class_data.name, class_data.prefix);
             });
 
-            const items = [ ...this.iface_by_id[iface_id]['config-items'] || []];
-
             const default_type = defaultValue('type');
 
             const fixLocalItem = (item: any): any => {
+                item.type = item.type || default_type;
+                if (item.type[0] === '*') {
+                    item.type = item.type.substr(1);
+                    item.can_be_undefined = true;
+                }
+
+                const toYamlIfComplexLocal = value => toYamlIfComplex(value, item.type);
+
+                if (item.allowed_values) {
+                    item.allowed_values = item.allowed_values.map(value => toYamlIfComplexLocal(value));
+                }
+
                 delete item.value;
-                if (item.default_value) {
+                if (item.default_value !== undefined) {
+                    item.default_value = toYamlIfComplexLocal(item.default_value);
                     item.value = item.default_value;
                     item.level = 'default';
                     item.is_set = true;
@@ -308,20 +392,21 @@ export class InterfaceInfo {
                 for (const level of ['global', 'workflow', 'local']) {
                     const key = level + '-value';
                     if (item[key] !== undefined) {
-                        item.value = item[key];
+                        item.value = toYamlIfComplexLocal(item[key]);
                         item.level = level === 'local' ? iface_kind : level;
                         item.is_set = true;
                     }
                 }
-                item.type = (item.type || default_type);
 
-                return { ...item };
+                return item;
             };
 
             const checkValueLevel = (item: any, level: string): any => {
                 const key = level + '-value';
                 if (item[key] !== undefined) {
                     item.value = item[key];
+                    item.level = level;
+                    item.is_set = true;
                 }
                 else {
                     delete item.value;
@@ -331,40 +416,65 @@ export class InterfaceInfo {
             }
 
             const addYamlData = (item: any): any => {
-                const toYaml = str => jsyaml.safeDump(str).replace(/\r?\n$/, '');
+                const toYamlIfNotComplex = value => ['list', 'hash'].includes(item.type)
+                    ? value
+                    : jsyaml.safeDump(value).replace(/\r?\n$/, '');
+
+                const hasNormalValue = value => typeof value !== 'undefined' && value !== null;
 
                 let yaml_data_tag = {
-                    ... item.value !== undefined ? {value: toYaml(item.value)} : {},
-                    ... item.default_value !== undefined ? {default_value: toYaml(item.default_value)} : {},
+                    ... hasNormalValue(item.value)
+                        ? {value: toYamlIfNotComplex(item.value)}
+                        : {},
+                    ... hasNormalValue(item.default_value)
+                        ? {default_value: toYamlIfNotComplex(item.default_value)}
+                        : {},
                     ... item.allowed_values
-                        ? {allowed_values: item.allowed_values.map(value => toYaml(value))}
+                        ? {allowed_values: item.allowed_values.map(value => toYamlIfNotComplex(value))}
                         : {}
                 };
 
                 return { ...item, yamlData: yaml_data_tag };
             };
 
-            const local_items = (items || []).map(item => fixLocalItem(item));
+            let items: any[];
+            if (iface_kind === 'workflow') {
+                items = this.workflowStepsConfigItems(this.iface_by_id[iface_id].steps);
+            } else {
+                items = [ ...this.iface_by_id[iface_id]['config-items'] || []];
+            }
+
+            const local_items = (items || []).map(item => fixLocalItem({ ...item }));
 
             const global_items = local_items.filter(item => !item.strictly_local)
                                             .map(item => checkValueLevel({ ...item }, 'global'));
 
-            let workflow_items = [];
-            if (iface_kind === 'step') {
-                const {name, version} = this.iface_by_id[iface_id];
-                const name_version = `${name}:${version || default_version}`
-                if (this.code_info.workflowYamlDataByStep(name_version)) {
-                    workflow_items = local_items.filter(item => !item.strictly_local)
-                                                .map(item => checkValueLevel({ ...item }, 'workflow'));
-                }
-            }
+            let message: any;
+            if (iface_kind === 'workflow') {
+                const workflow_values = this.iface_by_id[iface_id]['config-item-values'] || [];
+                let workflow_items = local_items.filter(item => !item.strictly_local);
 
-            const message = {
-                action: 'return-config-items',
-                items: local_items.map(item => addYamlData(item)),
-                workflow_items: workflow_items.map(item => addYamlData(item)),
-                global_items: global_items.map(item => addYamlData(item))
-            };
+                workflow_items.forEach(item => {
+                    const index = workflow_values.findIndex(item2 => item2.name === item.name);
+                    if (index > -1) {
+                        item['workflow-value'] = toYamlIfComplex(workflow_values[index].value, item.type);
+                    }
+                    delete item.default_value;
+                });
+                workflow_items = workflow_items.map(item => checkValueLevel({ ...item }, 'workflow'));
+
+                message = {
+                    action: 'return-config-items',
+                    workflow_items: workflow_items.map(item => addYamlData(item)),
+                    global_items: global_items.map(item => addYamlData(item))
+                };
+            } else {
+                message = {
+                    action: 'return-config-items',
+                    items: local_items.map(item => addYamlData(item)),
+                    global_items: global_items.map(item => addYamlData(item))
+                };
+            }
 
             qorus_webview.postMessage(message);
 
