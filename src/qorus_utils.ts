@@ -4,7 +4,7 @@ import { Uri } from 'vscode';
 
 export const isDeployable = (file_path: string): boolean =>
     hasOneOfSuffixes(file_path, ['qfd', 'qwf', 'qsd', 'qjob', 'qclass', 'qconst', 'qconn', 'qstep',
-                                 'qmapper', 'qvmap', 'qsm', 'qrf', 'qscript', 'java', 'yaml']);
+                                 'qmapper', 'qvmap', 'qsm', 'qrf', 'qscript', 'java', 'yaml', 'qmc']);
 
 export const canBeParsed = (file_path: string): boolean =>
     hasOneOfSuffixes(file_path, ['qfd', 'qsd', 'qjob', 'qclass', 'qconst', 'qmapper', 'qvmap', 'java']);
@@ -24,12 +24,6 @@ const hasOneOfSuffixes = (file_path: string, suffixes: string[]): boolean => {
 export const isTest = (file_path: string): boolean => getSuffix(file_path) === 'qtest';
 
 export const isService = (file_path: string): boolean => getSuffix(file_path) === 'qsd';
-
-export const canDefineInterfaceBaseClass = (file_path: string): boolean =>
-    hasOneOfSuffixes(file_path, ['qfd', 'qclass', 'qstep']);
-
-export const javaCanDefineInterfaceBaseClass = (file_path: string): boolean =>
-    hasOneOfSuffixes(file_path, ['java']);
 
 export const isVersion3 = (version?: string): boolean =>
     !!version && version.toString().substr(0, 1) == '3';
