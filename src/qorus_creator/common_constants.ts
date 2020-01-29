@@ -20,15 +20,22 @@ export const default_parse_options = '\
 %enable-all-warnings\n\n\
 ';
 
-export const class_template = {
-    qore: 'class ${this.class_name} {\n}\n',
-    java: 'class ${this.class_name} {\n}\n',
-};
+const classTemplate = with_base_class => {
+    let class_template: any = {};
 
-export const subclass_template = {
-    qore: 'class ${this.class_name} inherits ${this.base_class_name} {\n}\n',
-    java: 'class ${this.class_name} extends ${this.base_class_name} {\n}\n',
-};
+    ['qore', 'java'].forEach(lang => {
+        class_template[lang] = 'class ${this.class_name}';
+        if (with_base_class) {
+            class_template[lang] += ` ${lang_inherits[lang]}` + ' ${this.base_class_name}';
+        }
+        class_template[lang] += ' {\n${this.connections_inside}}\n${this.connections_outside}';
+    });
+
+    return class_template;
+}
+
+export const class_template = classTemplate(false);
+export const subclass_template = classTemplate(true);
 
 export const classFields = ({ is_editing, default_target_dir }) => [
     field.targetDir(default_target_dir),

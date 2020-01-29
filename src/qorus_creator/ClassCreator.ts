@@ -7,6 +7,7 @@ import { job_template } from './job_constants';
 import { workflow_template } from './workflow_constants';
 import { step_template } from './step_constants';
 import { stepTypeHeaders } from './step_constants';
+import { connectionsCode } from './class_connections';
 import { hasConfigItems } from '../qorus_utils';
 import { t } from 'ttag';
 import * as msg from '../qorus_message';
@@ -63,12 +64,20 @@ class ClassCreator extends InterfaceCreator {
                     break;
                 }
 
-                contents = data['base-class-name']
-                    ?   this.fillTemplate(template, {
-                            class_name: data['class-name'],
-                            base_class_name: data['base-class-name']
-                        })
-                    :   this.fillTemplate(template, { class_name: data['class-name'] });
+                let connections_inside: string = '';
+                let connections_outside: string = '';
+                if (data['class-connections']) {
+                    ({connections_inside, connections_outside}
+                                        = connectionsCode(data['class-connections'], this.lang));
+                }
+
+                contents = this.fillTemplate(template, {
+                    class_name: data['class-name'],
+                    base_class_name: data['base-class-name'],
+                    connections_inside,
+                    connections_outside
+                });
+
                 message = t`2FilesCreatedInDir ${this.file_name} ${this.yaml_file_name} ${this.target_dir}`;
                 break;
             case 'edit':

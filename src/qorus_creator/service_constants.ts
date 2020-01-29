@@ -5,8 +5,10 @@ let method_template: any = {};
 
 class_template.qore = '\
 class ${this.class_name} inherits ${this.base_class_name} {\n\
+${this.connections_inside}\
 ${this.methods}\
 }\n\
+${this.connections_outside}\
 ';
 
 class_template.java = '\

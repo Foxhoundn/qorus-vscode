@@ -4,6 +4,7 @@ import { qorus_webview } from '../QorusWebview';
 import { InterfaceCreator } from './InterfaceCreator';
 import { service_class_template, service_method_template } from './service_constants';
 import { mapper_code_class_template, mapper_code_method_template } from './mapper_constants';
+import { connectionsCode } from './class_connections';
 import { hasConfigItems } from '../qorus_utils';
 import { t } from 'ttag';
 import * as msg from '../qorus_message';
@@ -278,6 +279,15 @@ class ClassWithMethodsCreator extends InterfaceCreator {
     }
 
     private code = (data: any, method_objects: any[] = []): any => {
+        let triggers: string[] = [];
+        let connections_inside: string = '';
+        let connections_outside: string = '';
+        if (data['class-connections']) {
+            ({connections_inside, connections_outside, triggers}
+                 = connectionsCode(data['class-connections'], this.lang));
+            method_objects = method_objects.filter(method_object => !triggers.includes(method_object.name));
+        }
+
         let method_strings = [];
         for (let method of method_objects) {
             method_strings.push(this.fillTemplate(this.method_template, { name: method.name }, false));
@@ -287,7 +297,9 @@ class ClassWithMethodsCreator extends InterfaceCreator {
         return this.fillTemplate(this.class_template, {
             class_name: data['class-name'],
             base_class_name: data['base-class-name'],
-            methods
+            methods,
+            connections_inside,
+            connections_outside
         });
     }
 
