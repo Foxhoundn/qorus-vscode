@@ -1,20 +1,39 @@
 stages:
-  - build
+  - test
 
-package_build:
-  stage: build
-  image: alpine:latest
+test:
+  stage: test
+  image: registry.qoretechnologies.com/infrastructure/qorus-vscode-test-base/qorus-vscode-test-base:latest
   tags:
     - docker-exec
-  artifacts:
-    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-    paths:
-      - qorus-vscode-*.vsix
-    when: on_success
-    expire_in: 2 day
   script:
-    - apk add git nodejs npm
-    - npm -g i vsce
+    - apt-get update && apt-get install -y libasound2
     - npm install
-    - npm run build
-    - vsce package
+    - npm install --save-dev vsce
+    - cd ui-test
+    - npm install
+
+    # if the grep fails, the grep and sed commands must be edited
+    - grep '" --install-extension' node_modules/vscode-extension-tester/out/util/codeUtil.js
+    #- sed -i 's/--install-extension/--user-data-dir test-resources\/settings --extensions-dir \/tmp\/vscode-ext --install-extension/' node_modules/vscode-extension-tester/out/util/codeUtil.js
+    - sed -i 's/--install-extension/--user-data-dir test-resources\/settings --install-extension/' node_modules/vscode-extension-tester/out/util/codeUtil.js
+    - grep 'const args = \[' node_modules/vscode-extension-tester/out/webdriver/browser.js
+    #- sed -i 's/const args = \[/const args = \["--disable-gpu", "--extensions-dir", "\/tmp\/vscode-ext", /' node_modules/vscode-extension-tester/out/webdriver/browser.js
+    - sed -i 's/const args = \[/const args = \["--disable-gpu", /' node_modules/vscode-extension-tester/out/webdriver/browser.js
+
+    - cd ..
+    - mkdir -p test-resources/settings ui-test/test_project/ /tmp/vscode-ext
+    - export PATH=`pwd`/node_modules/.bin:${PATH}
+    - ui-test/node_modules/.bin/extest setup-tests
+    - sed -i 's/width:1024,height:768/width:1920,height:1080/' test-resources/VSCode-linux-x64/resources/app/out/vs/code/electron-main/main.js
+    #- test-resources/VSCode-linux-x64/bin/code --user-data-dir test-resources/settings --extensions-dir /tmp/vscode-ext --install-extension qoretechnologies.qore-vscode
+    - test-resources/VSCode-linux-x64/bin/code --user-data-dir test-resources/settings --install-extension qoretechnologies.qore-vscode
+
+    #- sed -i 's/width:1024,height:768/width:1920,height:1080/' /usr/share/code/resources/app/out/vs/code/electron-main/main.js
+    #- apt-get update && apt-get install -y imagemagick && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+    - cp -r ui-test/mock/* ui-test/test_project/
+    - npm run compile:test
+    - export DISPLAY=:1
+    - Xvfb ${DISPLAY} -screen 0 1920x1080x24 &
+    - sleep 3
+    - ui-test/node_modules/.bin/extest run-tests ui-test/out/*.js

@@ -36,7 +36,7 @@ describe('Webview Simple Test', function() {
         const input: InputBox = await new InputBox();
 
         await input.wait();
-        await input.setText('/Users/filipwitosz/Code/Projects/qorus-vscode/ui-test/test_project');
+        await input.setText('/builds/mirror/qorus-vscode/ui-test/test_project');
         await input.confirm();
 
         await sleep(10000);
