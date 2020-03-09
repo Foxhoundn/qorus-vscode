@@ -141,6 +141,10 @@ describe('Webview Simple Test', function() {
     });
 
     it('Shows environment page', async () => {
+        await clickElement('Project');
+
+        await sleep(3000);
+
         const environmentPanels = await webview.findWebElements(By.className('sc-cmTdod'));
         expect(environmentPanels).to.have.length(1);
     });
