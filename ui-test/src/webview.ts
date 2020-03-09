@@ -141,7 +141,7 @@ describe('Webview Simple Test', function() {
     });
 
     it('Shows environment page', async () => {
-        await clickElement('Project');
+        await clickElement('ProjectConfig');
 
         await sleep(3000);
 
