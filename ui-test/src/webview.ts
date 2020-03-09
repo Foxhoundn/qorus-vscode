@@ -59,9 +59,6 @@ describe('Webview Simple Test', function() {
     });
 
     const clickElement = async (name: string, position?: number, useClassName?: boolean) => {
-        console.log("click name: ", name);
-        console.log("pos: ", position);
-        console.log("useClassName: ", useClassName);
         if (position !== undefined) {
             await (await webview.findWebElements(By[useClassName ? 'className' : 'name'](name)))[position - 1].click();
         } else {
