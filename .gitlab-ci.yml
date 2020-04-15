@@ -10,7 +10,9 @@ test:
   script:
     - export DISPLAY=":1"
     - useradd -m -d /home/cuser -U -s /bin/bash cuser
-    - cd .. && chown -R cuser:cuser ./*
+    - cd ..
+    - chown -R cuser:cuser ./*
+    - cd qorus-vscode
     - apt-get update
     - apt-get -y install gosu
     - |
