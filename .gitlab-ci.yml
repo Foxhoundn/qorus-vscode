@@ -9,6 +9,10 @@ test:
     - docker-exec
   script:
     - export DISPLAY=":1"
+    - useradd -m -d /home/cuser -U -s /bin/bash cuser
+    - cd .. && chown -R cuser:cuser ./*
+    - apt-get update
+    - apt-get -y install gosu
     - |
         curl "https://api.github.com/repos/qoretechnologies/qorus-vscode/statuses/${CI_COMMIT_SHA}" \
         -X POST -u omusil24:${GITHUB_ACCESS_TOKEN} -H "Content-Type: application/json" \
@@ -16,7 +20,7 @@ test:
     - |
         set +e
         Xvfb ${DISPLAY} -screen 0 1920x1080x24 &
-        if ./docker-ui-test.sh; then
+        if gosu cuser:cuser bash ./docker-ui-test.sh; then
           curl "https://api.github.com/repos/qoretechnologies/qorus-vscode/statuses/${CI_COMMIT_SHA}" \
             -X POST -u omusil24:${GITHUB_ACCESS_TOKEN} -H "Content-Type: application/json" \
             -d "{\"state\": \"success\", \"context\": \"qorus-vscode-ui-test\", \"description\": \"Gitlab CI\", \"target_url\": \"${CI_JOB_URL}\"}"
