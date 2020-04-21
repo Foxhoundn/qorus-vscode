@@ -25,10 +25,6 @@ sed -i 's/const args = \[/const args = \["--disable-gpu", /' webdriver/browser.j
 cd ${rootdir}
 mkdir -p test-resources/settings
 npm run compile:test
-git clone -b develop --single-branch --depth 1 "https://${DEMOS_DEPLOY_USER}:${DEMOS_DEPLOY_PASS}@git.qoretechnologies.com/qorus/demos.git" ui-test/test_project
-cd ui-test/test_project
-git config --file=.gitmodules submodule.building-blocks.url "https://${BB_DEPLOY_USER}:${BB_DEPLOY_PASS}@git.qoretechnologies.com/qorus/building-blocks.git"
-git submodule update --init
 
 # extester setup
 cd ${rootdir}
