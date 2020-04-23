@@ -31,7 +31,7 @@ export class InterfaceCreatorDispatcher {
             case 'mapper':
                 return mapperFields(params);
             case 'config-item':
-                return configItemFields(params.interface_info);
+                return configItemFields(params);
             case 'mapper-code':
                 return mapperCodeFields(params);
             case 'mapper-methods':

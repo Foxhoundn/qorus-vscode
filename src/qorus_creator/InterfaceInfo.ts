@@ -87,6 +87,13 @@ export class InterfaceInfo {
         this.last_other_if_kind = other_iface_kind && capitalize(other_iface_kind);
     }
 
+
+    configItemFieldModifiers = (iface_id, name) => {
+        msg.debug({iface_id, name});
+        return {};
+    }
+
+
     updateConfigItemValue =
         ({iface_id, iface_kind, name, value, level, parent_class, remove, is_templated_string, value_true_type}) =>
     {
@@ -196,7 +203,7 @@ export class InterfaceInfo {
                 iface['config-items'][index].name = item.name;
             }
 
-            const field_names = configItemFields(this).map(field => field.name);
+            const field_names = configItemFields({interface_info: this}).map(field => field.name);
             field_names.forEach(field_name => {
                 delete iface['config-items'][index][field_name];
             });
