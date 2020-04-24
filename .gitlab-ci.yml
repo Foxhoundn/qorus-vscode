@@ -36,7 +36,7 @@ uitest:
     - chmod 644 ~/.ssh/id_rsa.pub ~/.ssh/known_hosts
 
     - testdir=`head -c 192 /dev/urandom | tr -dc A-Za-z0-9 | head -c 24`
-    - echo "mkdir -p ${UITEST_TEST_PATH}/${testdir}" | ssh ${UITEST_USER}@${UITEST_SERVER}
+    - echo "rm -rf /home/test/.vscode && mkdir -p ${UITEST_TEST_PATH}/${testdir}" | ssh ${UITEST_USER}@${UITEST_SERVER}
     - scp qorus-vscode.tar.gz ${UITEST_USER}@${UITEST_SERVER}:${UITEST_TEST_PATH}/${testdir}/
     - echo "cd ${UITEST_TEST_PATH}/${testdir} && tar xzf qorus-vscode.tar.gz" | ssh ${UITEST_USER}@${UITEST_SERVER}
 

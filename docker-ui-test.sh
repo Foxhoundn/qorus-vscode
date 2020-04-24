@@ -31,7 +31,7 @@ cd ${rootdir}
 ui-test/node_modules/.bin/extest setup-tests
 
 # set vscode resolution
-sed -i 's/width:1024,height:768/width:1920,height:1080/' test-resources/VSCode-linux-x64/resources/app/out/vs/code/electron-main/main.js
+sed -i 's/width:1024,height:768/width:1600,height:1200/' test-resources/VSCode-linux-x64/resources/app/out/vs/code/electron-main/main.js
 
 # install qore extension
 test-resources/VSCode-linux-x64/bin/code --user-data-dir test-resources/settings --install-extension qoretechnologies.qore-vscode
