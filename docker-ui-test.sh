@@ -5,6 +5,7 @@ set -x
 
 export rootdir=`pwd`
 export PATH=${rootdir}/node_modules/.bin:${PATH}
+export DISPLAY=:0
 
 # install
 cd ${rootdir}
