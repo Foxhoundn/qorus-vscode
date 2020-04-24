@@ -2,7 +2,7 @@ import * as msg from '../qorus_message';
 const types = ['string', 'int', 'bool', 'float', 'date', 'hash', 'list', 'any'];
 
 export const configItemFields = params => {
-    const { interface_info, context: { iface_id, name } } = params;
+    const { interface_info, context: { iface_id, name } = { iface_id: undefined, name: undefined } } = params;
     if (name) {
         const data = interface_info.configItemFieldModifiers(iface_id, name);
         msg.debug({data});
