@@ -194,6 +194,10 @@ const ConfigItemManager: FunctionComponent<IConfigItemManager> = ({
                     <StyledConfigWrapper>
                         <InterfaceCreatorPanel
                             fileName={configItems.file_name}
+                            context={{
+                                iface_id: interfaceId,
+                                name: configItemData?.name,
+                            }}
                             parent={type}
                             type={'config-item'}
                             initialInterfaceId={interfaceId}

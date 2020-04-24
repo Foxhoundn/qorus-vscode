@@ -89,6 +89,7 @@ export interface IInterfaceCreatorPanel {
     definitionsOnly?: boolean;
     context?: {
         iface_kind: string;
+        iface_id?: string;
         name: string;
     };
     onSubmitSuccess: () => any;
