@@ -196,7 +196,7 @@ const ConfigItemManager: FunctionComponent<IConfigItemManager> = ({
                             fileName={configItems.file_name}
                             context={{
                                 iface_id: interfaceId,
-                                name: configItemData?.name,
+                                'config-item': configItemData,
                             }}
                             parent={type}
                             type={'config-item'}
