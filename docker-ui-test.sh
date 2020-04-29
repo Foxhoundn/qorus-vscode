@@ -31,6 +31,8 @@ npm run compile:test
 cd ${rootdir}
 ui-test/node_modules/.bin/extest setup-tests
 
+sleep 5000
+
 # set vscode resolution
 sed -i 's/width:1024,height:768/width:1600,height:1200/' test-resources/VSCode-linux-x64/resources/app/out/vs/code/electron-main/main.js
 
