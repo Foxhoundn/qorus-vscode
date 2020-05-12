@@ -1,6 +1,5 @@
 import { expect } from 'chai';
 import { By, EditorView, InputBox, VSBrowser, WebDriver, WebView, Workbench } from 'vscode-extension-tester';
-import { Editor } from 'vscode-extension-tester/out/webdriver/components/editor/Editor';
 
 function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -11,7 +10,7 @@ describe('Webview Simple Test', function() {
     let driver: WebDriver;
     let workbench: Workbench;
     let editor: EditorView;
-    let editorView: Editor;
+    let editorView;
     let webview: WebView;
 
     before(async () => {
@@ -40,6 +39,7 @@ describe('Webview Simple Test', function() {
         while (!isWebviewOpen) {
             isWebviewOpen = (await editor.getOpenEditorTitles()).includes('Qorus Webview');
         }
+        await sleep(3000);
 
         editorView = await new EditorView().openEditor('Qorus Webview');
         webview = await new WebView(new EditorView(), 'Qorus Webview');
